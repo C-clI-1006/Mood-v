@@ -80,12 +80,22 @@
             0%, 100% { opacity: 0.15; transform: scale(1); }
             50% { opacity: 0.4; transform: scale(1.1); }
         }
+        @keyframes slow-breath {
+            0%, 100% { transform: scale(1); opacity: 0.03; }
+            50% { transform: scale(1.05); opacity: 0.08; }
+        }
+        @keyframes bg-pulse-glow {
+            0%, 100% { opacity: 0.04; transform: scale(1); }
+            50% { opacity: 0.12; transform: scale(1.15); }
+        }
 
         .animate-bubble-pop { animation: bubble-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         .animate-breath { animation: pixar-breath 4s ease-in-out infinite; }
         .animate-heart { animation: heart-float 3s ease-out infinite; }
         .animate-bubble-rise { animation: bubble-rise 4s ease-out infinite; }
         .animate-glow { animation: ambient-glow 3s ease-in-out infinite; }
+        .animate-slow-breath { animation: slow-breath 10s ease-in-out infinite; }
+        .animate-bg-pulse { animation: bg-pulse-glow 6s ease-in-out infinite; }
 
         .loading-screen {
             display: flex;

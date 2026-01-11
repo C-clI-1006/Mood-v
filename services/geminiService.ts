@@ -2,7 +2,7 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { MoodType, DailyInsight, PetType, PetAccessory, ReportData, MoodEntry, Language, GroundingPlace } from "../types";
 
-// Base decoding/encoding for Live API
+// Helper to decode base64 strings to Uint8Array
 export function decode(base64: string) {
   const binaryString = atob(base64);
   const bytes = new Uint8Array(binaryString.length);
@@ -10,12 +10,14 @@ export function decode(base64: string) {
   return bytes;
 }
 
+// Helper to encode Uint8Array to base64 strings
 export function encode(bytes: Uint8Array) {
   let binary = '';
   for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
   return btoa(binary);
 }
 
+// Helper to decode raw PCM audio data into an AudioBuffer
 export async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number): Promise<AudioBuffer> {
   const dataInt16 = new Int16Array(data.buffer);
   const frameCount = dataInt16.length / numChannels;
@@ -27,77 +29,58 @@ export async function decodeAudioData(data: Uint8Array, ctx: AudioContext, sampl
   return buffer;
 }
 
-/**
- * 辅助函数：深度清理并解析 JSON，处理常见的截断、尾随逗号和 Markdown 包裹问题。
- */
+// Helper to parse JSON from AI response, cleaning markdown code blocks if present
 function safeJsonParse(text: string) {
   if (!text) return {};
   let cleaned = text.trim();
-  
-  // 移除 Markdown 标记
   cleaned = cleaned.replace(/^```json\s*/i, "").replace(/\s*```$/i, "");
-  
-  // 尝试提取最外层的大括号内容，以应对 AI 可能附带的解释性文字
   const firstBrace = cleaned.indexOf('{');
   const lastBrace = cleaned.lastIndexOf('}');
   if (firstBrace !== -1 && lastBrace !== -1) {
     cleaned = cleaned.substring(firstBrace, lastBrace + 1);
   }
-
-  // 处理可能的尾随逗号（简单的正则替换，虽然不完全严谨但对常见错误有效）
   cleaned = cleaned.replace(/,\s*([}\]])/g, '$1');
-
   try {
     return JSON.parse(cleaned);
   } catch (e) {
-    console.error("Critical JSON Parse Error. Original text:", text);
-    // 回退逻辑：如果解析彻底失败，返回一个包含基本信息的对象
+    console.error("JSON Parse Failure:", text);
     return {
-      affirmation: "愿你的心情如阳光般灿烂。",
-      news: "今天是个充满可能性的好日子。",
-      petMessage: "汪/喵/吱！我一直在你身边哦。",
-      implicitAnalysis: "正在感应你的心跳...",
-      musicSuggestion: { title: "Peaceful Mind", artist: "MoodFlow", reason: "舒缓你的心灵" }
+      affirmation: "愿你的心灵如湖水般宁静。",
+      news: "今日世界依旧有温暖在流动。",
+      petMessage: "我一直在这里陪着你。",
+      implicitAnalysis: "正在尝试触碰你的心跳...",
+      musicSuggestion: { title: "Inner Peace", artist: "Nature", reason: "舒缓当下的情绪" }
     };
   }
 }
 
-/**
- * Generates mood-based insights, affirmations, and music suggestions.
- * Uses thinkingBudget to ensure logical consistency and format compliance.
- */
+// Generates daily insights based on mood, pet type, and optional image
 export async function getMoodInsight(mood: MoodType, petType: PetType, note: string = "", lang: Language = 'zh', imageBase64?: string): Promise<DailyInsight> {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const langPrompt = lang === 'zh' ? "必须使用简体中文输出" : "Must output in English";
   
-  const petPersonalityPrompt = lang === 'zh' 
-    ? `作为一只${petType}守护者，请在'petMessage'中加入物种标志性叫声并提供安慰。`
-    : `As a ${petType} guardian, include your signature sounds in 'petMessage' and comfort the user.`;
-
+  // Decide whether to use maps (for anxious/sad moods) or just search (for general positive news)
   const useMaps = mood === 'anxious' || mood === 'sad';
-  const tools: any[] = useMaps ? [{ googleMaps: {} }] : [];
+  const tools: any[] = useMaps ? [{ googleMaps: {} }, { googleSearch: {} }] : [{ googleSearch: {} }];
+  
   let latLng = undefined;
-
   if (useMaps) {
     try {
-      const pos = await new Promise<GeolocationPosition>((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 }));
+      const pos = await new Promise<GeolocationPosition>((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 3000 }));
       latLng = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
-    } catch (e) { console.error("Geo failed", e); }
+    } catch (e) { console.warn("Location skipped", e); }
   }
 
-  const systemPrompt = `You are a healing pet companion. Personality Type: ${petType}. User mood: ${mood}. Note: "${note}". ${langPrompt}. 
-  ${petPersonalityPrompt}
-  Strictly return a single JSON object. DO NOT include trailing commas.
-  Schema: { "affirmation": string, "news": string, "petMessage": string, "implicitAnalysis": string, "musicSuggestion": { "title": string, "artist": string, "reason": string } }.`;
+  const systemPrompt = `You are a healing pet companion (${petType}). User mood: ${mood}. Note: "${note}". 
+  Task: Provide a comforting response. 
+  1. Use Google Search to find one RECENT POSITIVE news story (Good News) happening today/this week. 
+  2. If user is anxious/sad, use Google Maps to find a real park or quiet place nearby.
+  3. Output STRICT JSON format: { "affirmation": string, "news": string, "petMessage": string, "implicitAnalysis": string, "musicSuggestion": { "title": string, "artist": string, "reason": string } }. 
+  ${langPrompt}. No extra text outside JSON.`;
 
   const promptParts: any[] = [{ text: systemPrompt }];
   if (imageBase64) {
-    promptParts.push({ 
-      inlineData: { 
-        data: imageBase64.split(',')[1], 
-        mimeType: 'image/jpeg' 
-      } 
-    });
+    promptParts.push({ inlineData: { data: imageBase64.split(',')[1], mimeType: 'image/jpeg' } });
   }
 
   const modelName = useMaps ? "gemini-2.5-flash" : "gemini-3-flash-preview";
@@ -109,33 +92,30 @@ export async function getMoodInsight(mood: MoodType, petType: PetType, note: str
       config: {
         tools: tools,
         toolConfig: latLng ? { retrievalConfig: { latLng } } : undefined,
-        responseMimeType: useMaps ? undefined : "application/json",
-        // 增加思维预算以减少格式错误
         thinkingConfig: { thinkingBudget: 4000 }
       }
     });
 
     const result = safeJsonParse(response.text || "{}");
-
+    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     const places: GroundingPlace[] = [];
-    response.candidates?.[0]?.groundingMetadata?.groundingChunks?.forEach((chunk: any) => {
-      if (chunk.maps) {
-        places.push({ title: chunk.maps.title, uri: chunk.maps.uri });
-      }
+    
+    chunks.forEach((chunk: any) => {
+      if (chunk.maps) places.push({ title: chunk.maps.title, uri: chunk.maps.uri });
+      else if (chunk.web) places.push({ title: chunk.web.title, uri: chunk.web.uri });
     });
     
     return { ...result, placesNearby: places.length > 0 ? places : undefined };
   } catch (error: any) {
-    if (error.message?.includes("403") || error.message?.includes("permission")) {
-      throw new Error("API_PERMISSION_DENIED");
-    }
+    if (error.message?.includes("403")) throw new Error("API_PERMISSION_DENIED");
     throw error;
   }
 }
 
+// Generates an image of the pet using the image generation model
 export async function generatePetImage(type: PetType, accessory: PetAccessory = 'none', customDescription?: string): Promise<string> {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const prompt = customDescription || `A professional high-fidelity 3D character render of a cute ${type} pet companion, Pixar style, wearing a ${accessory === 'none' ? 'magical glowing aura' : accessory}. Soft cinematic lighting, vibrant pastel colors, clean white background, masterpiece quality.`;
+  const prompt = customDescription || `A professional high-fidelity 3D character render of a cute ${type} pet companion, Pixar style, wearing a ${accessory === 'none' ? 'magical glowing aura' : accessory}. Soft cinematic lighting, vibrant pastel colors, masterpiece quality.`;
   
   try {
     const response = await ai.models.generateContent({
@@ -143,49 +123,65 @@ export async function generatePetImage(type: PetType, accessory: PetAccessory = 
       contents: { parts: [{ text: prompt }] },
       config: { imageConfig: { aspectRatio: "1:1" } }
     });
-
     const parts = response.candidates?.[0]?.content?.parts || [];
-    for (const part of parts) {
-      if (part.inlineData) {
-        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-      }
-    }
-    throw new Error("Image generation failed.");
+    for (const part of parts) if (part.inlineData) return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+    throw new Error("Failed");
   } catch (error: any) {
-    if (error.message?.includes("403") || error.message?.includes("permission")) {
-      throw new Error("API_PERMISSION_DENIED");
-    }
+    if (error.message?.includes("403")) throw new Error("API_PERMISSION_DENIED");
     throw error;
   }
 }
 
+// Generates a comprehensive mood report for a given period using complex reasoning
 export async function generateReport(history: MoodEntry[], period: 'weekly' | 'monthly' | 'yearly', lang: Language): Promise<ReportData> {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const langPrompt = lang === 'zh' ? "必须使用简体中文输出" : "Must output in English";
-  const historyStr = history.map(e => `[${e.date}] Mood: ${e.mood}${e.note ? `, Note: ${e.note}` : ""}`).join("\n");
+  
+  const historySummary = history.map(h => `Date: ${h.date}, Mood: ${h.mood}, Note: ${h.note || 'N/A'}`).join('\n');
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: {
-        parts: [{
-          text: `Analyze the following mood history for a ${period} report. ${langPrompt}.
-          History:
-          ${historyStr}
-          Strictly JSON. No trailing commas.`
-        }]
-      },
+      model: 'gemini-3-pro-preview',
+      contents: `Analyze this mood history for a ${period} report and provide insights.
+      Mood History:
+      ${historySummary}
+      
+      ${langPrompt}.`,
       config: {
         responseMimeType: "application/json",
-        thinkingConfig: { thinkingBudget: 4000 }
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            period: { type: Type.STRING },
+            summary: { type: Type.STRING, description: "A brief summary of the emotional state over the period." },
+            trendAnalysis: { type: Type.STRING, description: "Analysis of how mood changed over time." },
+            dominantMood: { 
+              type: Type.STRING, 
+              description: "The most frequent or impactful mood.",
+              enum: ['happy', 'calm', 'neutral', 'anxious', 'sad', 'energetic']
+            },
+            advice: { type: Type.STRING, description: "Actionable advice based on the history." },
+          },
+          required: ["period", "summary", "trendAnalysis", "dominantMood", "advice"],
+        },
+        thinkingConfig: { thinkingBudget: 16000 }
       }
     });
-    
-    return safeJsonParse(response.text || "{}");
+
+    const text = response.text;
+    if (!text) throw new Error("Empty response");
+    return JSON.parse(text.trim());
   } catch (error: any) {
-    if (error.message?.includes("403") || error.message?.includes("permission")) {
-      throw new Error("API_PERMISSION_DENIED");
-    }
-    throw error;
+    console.error("Report generation failed:", error);
+    if (error.message?.includes("403")) throw new Error("API_PERMISSION_DENIED");
+    
+    // Return a sensible fallback if parsing or generation fails
+    return {
+      period,
+      summary: lang === 'zh' ? "无法生成详细报告。" : "Could not generate report.",
+      trendAnalysis: lang === 'zh' ? "由于数据解析问题，暂时无法分析趋势。" : "Trend analysis unavailable.",
+      dominantMood: 'neutral',
+      advice: lang === 'zh' ? "请继续记录您的心情，以便我们提供更好的分析。" : "Please keep recording your moods."
+    };
   }
 }

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { HashRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { MoodType, MoodEntry, DailyInsight, PetState, PetType, PetAccessory, Language, Theme } from './types';
 import { getMoodInsight, generatePetImage } from './services/geminiService';
@@ -11,6 +11,58 @@ import { PetSelector } from './components/PetSelector';
 import { ReportView } from './components/ReportView';
 import { LiveTreeHole } from './components/LiveTreeHole';
 import { translations } from './translations';
+
+const BackgroundMoodEffects: React.FC<{ mood: MoodType | null }> = ({ mood }) => {
+  const bubbles = useMemo(() => {
+    return [...Array(8)].map((_, i) => ({
+      id: i,
+      size: Math.random() * 80 + 40,
+      left: Math.random() * 100,
+      duration: Math.random() * 8 + 8,
+      delay: Math.random() * 5,
+    }));
+  }, []);
+
+  if (!mood) return null;
+
+  const isPositive = mood === 'happy' || mood === 'energetic';
+  const isNegative = mood === 'sad' || mood === 'anxious';
+  const isNeutral = mood === 'calm' || mood === 'neutral';
+
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      {isPositive && (
+        <>
+          {bubbles.map((b) => (
+            <div
+              key={b.id}
+              className="absolute bg-white/20 dark:bg-white/5 rounded-full animate-bubble-rise"
+              style={{
+                width: `${b.size}px`,
+                height: `${b.size}px`,
+                left: `${b.left}%`,
+                bottom: '-15%',
+                animationDuration: `${b.duration}s`,
+                animationDelay: `${b.delay}s`,
+              }}
+            />
+          ))}
+        </>
+      )}
+      {isNegative && (
+        <div 
+          className="absolute inset-0 bg-rose-500/10 dark:bg-rose-900/15 animate-bg-pulse"
+          style={{ mixBlendMode: 'overlay' }}
+        />
+      )}
+      {isNeutral && (
+        <div 
+          className="absolute inset-0 bg-indigo-500/10 dark:bg-indigo-900/10 animate-slow-breath"
+        />
+      )}
+    </div>
+  );
+};
 
 const Home: React.FC<{
   onMoodSubmit: (mood: MoodType, note: string, img?: string) => void;
@@ -24,7 +76,8 @@ const Home: React.FC<{
   lang: Language;
   theme: Theme;
   onOpenKey: () => void;
-}> = ({ onMoodSubmit, isLoading, isPetUpdating, currentInsight, error, pet, history, onUpdateAccessory, lang, theme, onOpenKey }) => {
+  onCurrentMoodChange: (mood: MoodType | null) => void;
+}> = ({ onMoodSubmit, isLoading, isPetUpdating, currentInsight, error, pet, history, onUpdateAccessory, lang, theme, onOpenKey, onCurrentMoodChange }) => {
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
   const [note, setNote] = useState("");
   const [image, setImage] = useState<string | null>(null);
@@ -34,6 +87,10 @@ const Home: React.FC<{
 
   const todayEntries = history.filter(e => new Date(e.date).toDateString() === new Date().toDateString());
   const displayMood = selectedMood || (todayEntries.length > 0 ? todayEntries[todayEntries.length - 1].mood : null);
+
+  useEffect(() => {
+    onCurrentMoodChange(displayMood);
+  }, [displayMood, onCurrentMoodChange]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -47,7 +104,7 @@ const Home: React.FC<{
   const isPermissionError = error === "API_PERMISSION_DENIED";
 
   return (
-    <div className="pb-32 fade-in">
+    <div className="pb-32 fade-in relative z-10">
       <header className="px-8 pt-12 pb-4 text-center">
         <h1 className="text-2xl font-light text-deepblue dark:text-gray-100 tracking-tight">{t.greeting}</h1>
         <p className="text-[9px] font-bold text-beigegray dark:text-gray-600 uppercase tracking-[0.3em] mt-1">
@@ -161,6 +218,7 @@ const AppContent: React.FC = () => {
   const [lang, setLang] = useState<Language>('zh');
   const [theme, setTheme] = useState<Theme>('light');
   const [hasApiKey, setHasApiKey] = useState<boolean>(true);
+  const [currentMoodForBg, setCurrentMoodForBg] = useState<MoodType | null>(null);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -279,6 +337,8 @@ const AppContent: React.FC = () => {
 
   return (
     <div className={`max-w-md mx-auto h-full ${theme === 'dark' ? 'bg-[#0F1115] text-white' : 'bg-cream text-deepblue'} flex flex-col relative transition-colors duration-500 overflow-hidden shadow-2xl ring-1 ring-beigegray dark:ring-gray-800`}>
+      <BackgroundMoodEffects mood={currentMoodForBg} />
+      
       {!pet && <PetSelector onSelect={handlePetSelect} isLoading={isLoading} />}
       
       <div className="absolute top-10 right-8 flex gap-3 z-40">
@@ -286,9 +346,9 @@ const AppContent: React.FC = () => {
         <button onClick={toggleTheme} className="w-9 h-9 flex items-center justify-center rounded-full bg-deepblue/10 dark:bg-gray-800/40 backdrop-blur-xl border border-deepblue/20 text-sm">{theme === 'light' ? '🌙' : '☀️'}</button>
       </div>
 
-      <div className="flex-1 overflow-y-auto pt-safe pb-24">
+      <div className="flex-1 overflow-y-auto pt-safe pb-24 relative z-10">
         <Routes>
-          <Route path="/" element={<Home {...{onMoodSubmit: handleMoodSubmit, isLoading, isPetUpdating, currentInsight, error, pet, history, onUpdateAccessory: handleUpdateAccessory, lang, theme, onOpenKey: handleOpenKey}} />} />
+          <Route path="/" element={<Home {...{onMoodSubmit: handleMoodSubmit, isLoading, isPetUpdating, currentInsight, error, pet, history, onUpdateAccessory: handleUpdateAccessory, lang, theme, onOpenKey: handleOpenKey, onCurrentMoodChange: setCurrentMoodForBg}} />} />
           <Route path="/stats" element={<ReportView history={history} lang={lang} />} />
         </Routes>
       </div>
