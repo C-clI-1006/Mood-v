@@ -1,7 +1,9 @@
 {
-  "name": "MoodFlow - Daily Affirmations & Music",
-  "description": "A personal iPhone-optimized mood tracker that provides AI-powered daily insights, positive news, and music recommendations based on your emotional state.",
+  "name": "MoodFlow - AI Soul Guardian",
+  "description": "An iPhone PWA that provides emotional support with Live Voice, Veo animations, and Maps grounding.",
   "requestFramePermissions": [
+    "camera",
+    "microphone",
     "geolocation"
   ]
 }
