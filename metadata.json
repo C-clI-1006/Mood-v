@@ -1,0 +1,7 @@
+{
+  "name": "MoodFlow - Daily Affirmations & Music",
+  "description": "A personal iPhone-optimized mood tracker that provides AI-powered daily insights, positive news, and music recommendations based on your emotional state.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
