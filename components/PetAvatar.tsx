@@ -8,26 +8,46 @@ interface PetAvatarProps {
   imageUrl?: string;
   isUpdating?: boolean;
   currentMood?: MoodType | null;
+  isSleeping?: boolean; // 新增
 }
 
-export const PetAvatar: React.FC<PetAvatarProps> = ({ type, level, imageUrl, isUpdating, currentMood }) => {
+export const PetAvatar: React.FC<PetAvatarProps> = ({ type, level, imageUrl, isUpdating, currentMood, isSleeping }) => {
   const scale = Math.min(1 + (level - 1) * 0.1, 1.4);
   const isPositive = currentMood === 'happy' || currentMood === 'energetic';
   const isNegative = currentMood === 'sad' || currentMood === 'anxious';
   
-  // 动态调整呼吸频率：焦虑时快，默认/平静时平稳
-  const breathDuration = currentMood === 'anxious' ? '1.5s' : currentMood === 'energetic' ? '2.5s' : '4s';
+  // 动态调整呼吸频率：睡眠最慢，焦虑最快
+  const breathDuration = isSleeping ? '8s' : currentMood === 'anxious' ? '1.5s' : currentMood === 'energetic' ? '2.5s' : '4s';
 
   return (
     <div 
-      className="relative flex items-center justify-center transition-all duration-1000 ease-out"
+      className={`relative flex items-center justify-center transition-all duration-1000 ease-out ${isSleeping ? 'grayscale-[0.4] brightness-90' : ''}`}
       style={{ transform: `scale(${scale})` }}
     >
       {/* 背景发光 Aura */}
-      <div className={`absolute w-64 h-64 rounded-full blur-3xl animate-glow transition-colors duration-1000 ${isNegative ? 'bg-rose-400/20' : isPositive ? 'bg-yellow-400/20' : 'bg-indigo-300/15'}`} />
+      <div className={`absolute w-64 h-64 rounded-full blur-3xl animate-glow transition-colors duration-1000 ${isSleeping ? 'bg-indigo-900/10' : isNegative ? 'bg-rose-400/20' : isPositive ? 'bg-yellow-400/20' : 'bg-indigo-300/15'}`} />
       
+      {/* 睡眠特效：Zzz */}
+      {isSleeping && !isUpdating && (
+        <div className="absolute inset-0 pointer-events-none overflow-visible">
+          {[...Array(3)].map((_, i) => (
+            <div 
+              key={i}
+              className="absolute text-deepblue dark:text-cream font-black text-2xl animate-zzz"
+              style={{ 
+                left: '60%', 
+                top: '20%',
+                animationDelay: `${i * 1.5}s`,
+              }}
+            >
+              Z
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* 负面情绪：爱心汇聚 */}
-      {isNegative && !isUpdating && (
+      {isNegative && !isUpdating && !isSleeping && (
         <div className="absolute inset-0 pointer-events-none overflow-visible">
           {[...Array(12)].map((_, i) => (
             <div 
@@ -47,7 +67,7 @@ export const PetAvatar: React.FC<PetAvatarProps> = ({ type, level, imageUrl, isU
       )}
 
       {/* 正面情绪：能量冒泡 */}
-      {isPositive && !isUpdating && (
+      {isPositive && !isUpdating && !isSleeping && (
         <div className="absolute inset-0 pointer-events-none overflow-visible">
           {[...Array(10)].map((_, i) => (
             <div 
@@ -82,7 +102,7 @@ export const PetAvatar: React.FC<PetAvatarProps> = ({ type, level, imageUrl, isU
           <img 
             src={imageUrl} 
             alt={type} 
-            className="w-56 h-56 rounded-[3.5rem] object-cover ring-8 ring-white dark:ring-gray-800 shadow-2xl"
+            className={`w-56 h-56 rounded-[3.5rem] object-cover ring-8 ring-white dark:ring-gray-800 shadow-2xl transition-all duration-1000 ${isSleeping ? 'opacity-80 scale-95' : 'opacity-100'}`}
           />
         ) : (
           <div className="w-56 h-56 bg-beigegray/20 dark:bg-gray-800 rounded-[3.5rem] flex items-center justify-center border-4 border-dashed border-beigegray">

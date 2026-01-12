@@ -1,172 +1,149 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { MoodEntry, ReportData, MoodType, Language } from '../types';
+import { FoodEntry, ReportData, CuisineType, Language } from '../types';
 import { generateReport } from '../services/geminiService';
-import { MoodIcons } from './Icons';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { translations } from '../translations';
 
-interface ReportViewProps {
-  history: MoodEntry[];
-  lang: Language;
-}
-
-const MOOD_COLORS: Record<MoodType, string> = {
-  happy: '#FACC15',
-  energetic: '#FB923C',
-  calm: '#1B263B',
-  neutral: '#EAE7DC',
-  anxious: '#4A5568',
-  sad: '#0D1B2A',
+const COLORS: Record<string, string> = {
+  Chinese: '#E63946', Japanese: '#457B9D', Italian: '#2A9D8F', French: '#E9C46A', Western: '#F4A261', StreetFood: '#E76F51', Cafe: '#DDA15E', Other: '#606C38'
 };
 
-export const ReportView: React.FC<ReportViewProps> = ({ history, lang }) => {
+const CUISINE_ICONS: Record<CuisineType, string> = {
+  Chinese: '🥟', Japanese: '🍣', Italian: '🍝', French: '🥐', Western: '🥩', StreetFood: '🍢', Cafe: '☕', Other: '🗺️'
+};
+
+export const ReportView: React.FC<{ history: FoodEntry[]; lang: Language }> = ({ history, lang }) => {
   const t = translations[lang];
-  const [period, setPeriod] = useState<'weekly' | 'monthly' | 'yearly'>('weekly');
   const [report, setReport] = useState<ReportData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchReport = async (p: 'weekly' | 'monthly' | 'yearly') => {
-    if (history.length < 3) return;
-    setIsLoading(true);
-    try {
-      const data = await generateReport(history, p, lang);
-      setReport(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (history.length >= 3) fetchReport(period);
-  }, [period, lang]);
-
-  const pieData = useMemo(() => {
-    const counts: Record<string, number> = {};
-    history.forEach(entry => {
-      counts[entry.mood] = (counts[entry.mood] || 0) + 1;
-    });
-    return Object.entries(counts).map(([name, value]) => ({
-      name: t[name as MoodType],
-      mood: name as MoodType,
-      value
-    }));
+    if (history.length >= 1) {
+      setIsLoading(true);
+      generateReport(history, 'weekly', lang).then(setReport).finally(() => setIsLoading(false));
+    }
   }, [history, lang]);
 
-  const heatmapData = useMemo(() => {
-    const data = [];
-    const today = new Date();
-    for (let i = 34; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(today.getDate() - i);
-      const dateStr = d.toDateString();
-      const entriesForDay = history.filter(e => new Date(e.date).toDateString() === dateStr);
-      const mood = entriesForDay.length > 0 ? entriesForDay[entriesForDay.length - 1].mood : null;
-      data.push({ date: d, mood });
-    }
-    return data;
+  const chartData = useMemo(() => {
+    const counts: any = {};
+    history.forEach(h => counts[h.cuisine] = (counts[h.cuisine] || 0) + 1);
+    return Object.entries(counts).map(([name, value]) => ({ name, value: value as number }));
   }, [history]);
 
-  if (history.length < 3) {
-    return (
-      <div className="p-12 text-center h-full flex flex-col items-center justify-center bg-cream">
-        <div className="text-5xl mb-6 text-darkblue">📊</div>
-        <h3 className="text-xl font-black mb-4 text-darkblue">{t.noData}</h3>
-        <p className="text-sm text-beigegray font-medium">{t.atLeastThree}</p>
-      </div>
-    );
-  }
+  const sortedHistory = useMemo(() => {
+    return [...history].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [history]);
+
+  if (history.length === 0) return (
+    <div className="flex flex-col items-center justify-center p-20 text-center animate-in fade-in">
+      <div className="text-6xl mb-6 opacity-20">📔</div>
+      <p className="text-beigegray font-black uppercase tracking-widest text-[10px]">{lang === 'zh' ? '暂无品鉴档案' : 'No Tasting Logs Yet'}</p>
+    </div>
+  );
 
   return (
-    <div className="px-6 pb-32 pt-8 bg-cream min-h-full">
-      <div className="flex bg-beigegray/30 p-1.5 rounded-full mb-8">
-        {(['weekly', 'monthly', 'yearly'] as const).map(p => (
-          <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-full transition-all ${
-              period === p ? 'bg-darkblue text-cream shadow-sm' : 'text-beigegray'
-            }`}
-          >
-            {t[p]}
-          </button>
-        ))}
+    <div className="px-8 pt-12 pb-32 space-y-8 animate-in fade-in">
+      <header>
+        <h2 className="text-3xl font-black text-darkblue dark:text-cream tracking-tighter">{t.stats}</h2>
+        <p className="text-[10px] font-bold text-beigegray uppercase tracking-[0.4em] mt-1">Dining Analytics & History</p>
+      </header>
+
+      {/* Pie Chart Section */}
+      <div className="bg-white dark:bg-gray-800/40 p-8 rounded-[3rem] border border-beigegray/30 shadow-sm">
+        <span className="text-[10px] font-black text-darkblue dark:text-cream uppercase tracking-[0.4em] block mb-6">{lang === 'zh' ? '味觉版图' : 'Taste Map'}</span>
+        <div className="h-48">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={chartData} innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value" animationDuration={1000}>
+                {chartData.map((entry, index) => <Cell key={index} fill={COLORS[entry.name] || '#ccc'} stroke="none" />)}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="grid grid-cols-2 gap-y-3 mt-6">
+          {chartData.map(d => (
+            <div key={d.name} className="flex items-center gap-2 text-[10px] font-bold">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[d.name] }} />
+              <span className="text-darkblue/70 dark:text-cream/70 uppercase tracking-wider">{t[d.name as CuisineType]}</span>
+              <span className="ml-auto text-darkblue dark:text-cream font-black mr-4">{d.value}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="space-y-6">
-        <section className="bg-beigegray/20 p-8 rounded-[3rem] border border-beigegray/30 shadow-sm">
-          <span className="text-[10px] font-black text-deepblue uppercase tracking-[0.4em] block mb-4">{t.moodDistribution}</span>
-          <div className="h-64 w-full relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={8} dataKey="value">
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={MOOD_COLORS[entry.mood]} stroke="none" />
-                  ))}
-                </Pie>
-                <RechartsTooltip contentStyle={{ borderRadius: '20px', border: 'none', fontSize: '12px', fontWeight: 'bold' }} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-               <span className="text-[10px] font-black text-beigegray uppercase">Total</span>
-               <span className="text-2xl font-black text-deepblue">{history.length}</span>
-            </div>
-          </div>
-        </section>
-
-        <section className="bg-beigegray/20 p-8 rounded-[3rem] border border-beigegray/30 shadow-sm">
-          <span className="text-[10px] font-black text-deepblue uppercase tracking-[0.4em] block mb-4">{t.moodHeatmap}</span>
-          <div className="grid grid-cols-7 gap-2">
-            {heatmapData.map((d, i) => (
-              <div key={i} className={`aspect-square rounded-lg transition-all duration-500 ${d.mood ? '' : 'bg-cream'}`} style={{ backgroundColor: d.mood ? MOOD_COLORS[d.mood] : undefined }} title={d.date.toLocaleDateString()} />
-            ))}
-          </div>
-          <div className="flex justify-between mt-4 text-[9px] font-bold text-beigegray uppercase tracking-widest">
-            <span>{t.daysAgo}</span>
-            <span>{t.today}</span>
-          </div>
-        </section>
-
-        {isLoading ? (
-          <div className="space-y-6">
-            <div className="h-40 bg-beigegray/30 rounded-[2.5rem] animate-pulse" />
-          </div>
-        ) : report ? (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="bg-darkblue p-10 rounded-[3.5rem] text-cream flex flex-col items-center shadow-2xl">
-              <span className="text-[10px] font-black text-cream/40 uppercase tracking-[0.4em] mb-6">{t.dominantTone}</span>
-              <div className="bg-cream/10 p-6 rounded-full mb-6 relative">
-                <div className="absolute inset-0 blur-2xl opacity-50 rounded-full" style={{ backgroundColor: MOOD_COLORS[report.dominantMood] }} />
-                {MoodIcons[report.dominantMood as MoodType]?.('w-16 h-16 relative z-10')}
-              </div>
-              <h4 className="text-3xl font-black tracking-tighter capitalize">{t[report.dominantMood] || report.dominantMood}</h4>
-            </div>
-
-            <div className="bg-beigegray/20 p-8 rounded-[2.5rem] border border-beigegray/30">
-              <span className="text-[10px] font-black text-darkblue uppercase tracking-[0.4em] block mb-4">{t.aiInsight}</span>
-              <p className="text-darkblue font-bold text-lg leading-snug mb-4">{report.summary}</p>
-              <div className="h-px bg-beigegray/50 mb-6" />
-              <span className="text-[10px] font-black text-beigegray uppercase tracking-[0.4em] block mb-4">{t.trendAnalysis}</span>
-              <p className="text-darkblue/80 text-sm leading-relaxed font-medium">{report.trendAnalysis}</p>
-            </div>
-
-            <div className="bg-darkblue p-8 rounded-[3rem] border border-black shadow-sm">
-               <div className="flex items-center gap-3 mb-4">
-                  <div className="bg-cream text-darkblue p-2 rounded-xl text-lg shadow-lg">💡</div>
-                  <span className="text-[10px] font-black text-cream uppercase tracking-[0.4em]">{t.advice}</span>
+      {/* AI Report Summary */}
+      {isLoading ? (
+        <div className="bg-beigegray/10 rounded-[3rem] h-32 animate-pulse flex items-center justify-center">
+          <span className="text-[10px] font-black uppercase tracking-widest text-beigegray">分析中...</span>
+        </div>
+      ) : report && (
+        <div className="space-y-6">
+          <div className="bg-darkblue p-8 rounded-[3rem] text-cream shadow-xl">
+            <span className="text-[9px] font-black text-cream/40 uppercase tracking-[0.4em] block mb-4">{lang === 'zh' ? '主导风味' : 'Dominant Tone'}</span>
+            <div className="flex items-center gap-4">
+               <div className="text-4xl">{CUISINE_ICONS[report.dominantCuisine]}</div>
+               <div>
+                 <h4 className="text-2xl font-black tracking-tighter uppercase">{t[report.dominantCuisine]}</h4>
+                 <p className="text-[11px] text-cream/70 leading-relaxed mt-1">{report.summary}</p>
                </div>
-               <p className="text-cream font-bold text-sm leading-relaxed">{report.advice}</p>
             </div>
           </div>
-        ) : (
-          <div className="text-center py-10">
-            <button onClick={() => fetchReport(period)} className="px-8 py-4 bg-darkblue text-cream rounded-full text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-xl hover:bg-black">
-              {t.regenerate}
-            </button>
+          <div className="bg-amber-50 dark:bg-amber-900/10 p-8 rounded-[3rem] border border-amber-100 dark:border-amber-900/30">
+            <div className="flex items-center gap-2 mb-4">
+               <span className="text-xl">👨‍🍳</span>
+               <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">{t.chefAdvice}</span>
+            </div>
+            <p className="text-sm font-medium leading-relaxed italic text-amber-900/80 dark:text-amber-200/80">"{report.chefAdvice}"</p>
           </div>
-        )}
+        </div>
+      )}
+
+      {/* Detailed Tasting Logs */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-2">
+          <span className="text-[10px] font-black text-darkblue dark:text-cream uppercase tracking-[0.4em]">{lang === 'zh' ? '近期品鉴详情' : 'Recent Tastings'}</span>
+          <span className="text-[9px] font-bold text-beigegray uppercase tracking-widest">{history.length} ITEMS</span>
+        </div>
+        <div className="grid gap-4">
+          {sortedHistory.map((entry) => (
+            <div key={entry.id} className="bg-white dark:bg-gray-800/40 p-6 rounded-[2.5rem] border border-beigegray/20 shadow-sm flex flex-col gap-4">
+              <div className="flex justify-between items-start">
+                <div className="flex flex-col">
+                  <span className="text-sm font-black text-darkblue dark:text-white leading-tight">
+                    {entry.review?.restaurantName || (lang === 'zh' ? '未知餐厅' : 'Unknown Spot')}
+                  </span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs">{CUISINE_ICONS[entry.cuisine]}</span>
+                    <span className="text-[9px] font-black text-beigegray uppercase tracking-widest">{t[entry.cuisine]}</span>
+                    <span className="text-[8px] text-beigegray/60">•</span>
+                    <span className="text-[9px] font-bold text-beigegray">{new Date(entry.date).toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { month: 'short', day: 'numeric' })}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 bg-darkblue/5 dark:bg-cream/5 px-2 py-1 rounded-full">
+                  <span className="text-[10px] font-black text-darkblue dark:text-cream">{entry.review?.rating}</span>
+                  <span className="text-[10px]">💎</span>
+                </div>
+              </div>
+
+              {entry.review?.recommendedDishes && entry.review.recommendedDishes.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {entry.review.recommendedDishes.slice(0, 3).map((dish, idx) => (
+                    <span key={idx} className="text-[8px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-lg border border-emerald-100 dark:border-emerald-800 uppercase">
+                      ✓ {dish}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {entry.note && (
+                <p className="text-[10px] text-darkblue/60 dark:text-cream/60 font-medium italic line-clamp-2 border-t border-beigegray/10 pt-3 mt-1">
+                  "{entry.note}"
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -56,7 +56,6 @@
             -webkit-backdrop-filter: blur(20px);
         }
         
-        /* 自定义关键帧动画 */
         @keyframes bubble-pop {
             0% { transform: scale(0.8) translateY(10px); opacity: 0; }
             70% { transform: scale(1.05) translateY(-2px); opacity: 1; }
@@ -88,6 +87,12 @@
             0%, 100% { opacity: 0.04; transform: scale(1); }
             50% { opacity: 0.12; transform: scale(1.15); }
         }
+        /* 新增：睡眠 Zzz 动画 */
+        @keyframes zzz-float {
+            0% { transform: translate(0, 0) scale(0.5) rotate(0deg); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translate(40px, -80px) scale(1.5) rotate(20deg); opacity: 0; }
+        }
 
         .animate-bubble-pop { animation: bubble-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         .animate-breath { animation: pixar-breath 4s ease-in-out infinite; }
@@ -96,6 +101,7 @@
         .animate-glow { animation: ambient-glow 3s ease-in-out infinite; }
         .animate-slow-breath { animation: slow-breath 10s ease-in-out infinite; }
         .animate-bg-pulse { animation: bg-pulse-glow 6s ease-in-out infinite; }
+        .animate-zzz { animation: zzz-float 4s ease-in-out infinite; }
 
         .loading-screen {
             display: flex;

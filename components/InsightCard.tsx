@@ -27,6 +27,20 @@ export const InsightCard: React.FC<InsightCardProps> = ({ insight, isLoading, la
 
   return (
     <div className="flex flex-col gap-6 px-8 pb-32">
+      {/* 关键词与细分情绪 */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap gap-2">
+           <span className="px-3 py-1 bg-darkblue text-cream text-[9px] font-black rounded-full uppercase tracking-widest">
+             {insight.refinedEmotion}
+           </span>
+           {insight.keywords.map((k, i) => (
+             <span key={i} className="px-3 py-1 bg-beigegray/40 dark:bg-gray-800 text-[9px] font-bold text-darkblue dark:text-beigegray rounded-full">
+               #{k}
+             </span>
+           ))}
+        </div>
+      </div>
+
       {/* 接地信息 (地图或搜索来源) */}
       {insight.placesNearby && insight.placesNearby.length > 0 && (
         <div className="bg-beigegray/40 dark:bg-emerald-900/20 p-6 rounded-3xl border border-beigegray/50">

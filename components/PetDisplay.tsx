@@ -8,6 +8,7 @@ interface PetDisplayProps {
   pet: PetState;
   currentMood: MoodType | null;
   onUpdateAccessory: (acc: PetAccessory) => void;
+  onToggleSleep: () => void; // 新增
   isUpdating?: boolean;
   petMessage?: string;
   lang: Language;
@@ -29,8 +30,9 @@ const ACCESSORIES: { id: PetAccessory; icon: string }[] = [
   { id: 'bowtie', icon: '🎀' },
 ];
 
-export const PetDisplay: React.FC<PetDisplayProps> = ({ pet, currentMood, onUpdateAccessory, isUpdating, petMessage, lang }) => {
+export const PetDisplay: React.FC<PetDisplayProps> = ({ pet, currentMood, onUpdateAccessory, onToggleSleep, isUpdating, petMessage, lang }) => {
   const t = translations[lang];
+  const isSleeping = pet.isSleeping;
 
   return (
     <div className="flex flex-col items-center p-8">
@@ -57,6 +59,13 @@ export const PetDisplay: React.FC<PetDisplayProps> = ({ pet, currentMood, onUpda
              </div>
              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-cream dark:bg-gray-800 border-r border-b border-beigegray dark:border-indigo-900/30 rotate-45" />
           </div>
+        ) : isSleeping ? (
+          <div className="relative bg-indigo-900/10 px-6 py-4 rounded-[2.2rem] shadow-sm border border-beigegray/40 animate-bubble-pop max-w-[90%]">
+            <p className="text-[10px] font-black text-beigegray uppercase tracking-widest text-center">
+              {lang === 'zh' ? '嘘... 正在休息' : 'Shh... Resting'}
+            </p>
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-cream dark:bg-darkblue/5 border-r border-b border-beigegray/40 rotate-45" />
+          </div>
         ) : petMessage ? (
           <div className="relative bg-cream dark:bg-gray-800 px-6 py-4 rounded-[2.2rem] shadow-2xl border border-beigegray dark:border-gray-700 animate-bubble-pop max-w-[90%]">
             <p className="text-sm font-bold text-deepblue dark:text-gray-100 text-center leading-relaxed">
@@ -77,8 +86,17 @@ export const PetDisplay: React.FC<PetDisplayProps> = ({ pet, currentMood, onUpda
           imageUrl={pet.imageUrl}
           isUpdating={isUpdating}
           currentMood={currentMood}
+          isSleeping={isSleeping}
         />
         
+        {/* Sleep Toggle Button */}
+        <button 
+          onClick={onToggleSleep}
+          className={`absolute top-8 right-8 w-10 h-10 rounded-full flex items-center justify-center transition-all ${isSleeping ? 'bg-darkblue text-cream' : 'bg-cream text-beigegray'}`}
+        >
+          {isSleeping ? '🌙' : '🔔'}
+        </button>
+
         {/* Vitality Bar */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-44 flex flex-col gap-2">
           <div className="flex justify-between text-[9px] font-black text-beigegray px-1 uppercase tracking-widest">
@@ -90,7 +108,7 @@ export const PetDisplay: React.FC<PetDisplayProps> = ({ pet, currentMood, onUpda
           </div>
           <div className="h-2.5 w-full bg-cream dark:bg-gray-700 rounded-full overflow-hidden p-0.5 border border-beigegray/30 dark:border-gray-600 shadow-inner">
             <div 
-              className="h-full rounded-full transition-all duration-1000 ease-out bg-darkblue dark:bg-white"
+              className={`h-full rounded-full transition-all duration-1000 ease-out ${isSleeping ? 'bg-indigo-300' : 'bg-darkblue dark:bg-white'}`}
               style={{ width: `${pet.hp}%` }}
             />
           </div>
@@ -102,13 +120,13 @@ export const PetDisplay: React.FC<PetDisplayProps> = ({ pet, currentMood, onUpda
         {ACCESSORIES.map(acc => (
           <button
             key={acc.id}
-            disabled={isUpdating}
+            disabled={isUpdating || isSleeping}
             onClick={() => onUpdateAccessory(acc.id)}
             className={`group relative py-4 rounded-[2rem] flex flex-col items-center transition-all duration-500 border-2 ${
               pet.accessory === acc.id 
                 ? 'bg-darkblue border-darkblue text-cream shadow-xl -translate-y-2' 
                 : 'bg-beigegray/30 border-transparent text-deepblue/40 hover:border-beigegray active:scale-95'
-            } ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
+            } ${isUpdating || isSleeping ? 'opacity-30 cursor-not-allowed grayscale' : ''}`}
           >
             <span className="text-xl mb-1 group-hover:scale-125 transition-transform">{acc.icon}</span>
             <span className="text-[9px] font-black tracking-widest opacity-80 uppercase">{acc.id}</span>
@@ -121,6 +139,10 @@ export const PetDisplay: React.FC<PetDisplayProps> = ({ pet, currentMood, onUpda
         {isUpdating ? (
           <span className="text-[10px] font-black text-darkblue dark:text-indigo-400 animate-pulse uppercase tracking-[0.4em]">
             {t.magicInProgress}
+          </span>
+        ) : isSleeping ? (
+          <span className="text-[10px] font-black text-beigegray dark:text-gray-600 uppercase tracking-[0.4em]">
+            {lang === 'zh' ? '小憩中...' : 'napping...'}
           </span>
         ) : (
           <span className="text-[10px] font-black text-beigegray dark:text-gray-600 uppercase tracking-[0.4em]">
