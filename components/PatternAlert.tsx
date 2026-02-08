@@ -18,16 +18,16 @@ export const PatternAlert: React.FC<PatternAlertProps> = ({ analysis, onClose, l
         <div className="bg-darkblue p-8 text-cream text-center relative">
           <div className="text-4xl mb-4">🧠</div>
           <h3 className="text-xl font-black uppercase tracking-tighter">
-            {lang === 'zh' ? '模式警报' : 'Pattern Alert'}
+            {t.patternAlertTitle}
           </h3>
           <p className="text-[10px] font-bold opacity-60 uppercase tracking-[0.3em] mt-1">
-             Recurring Emotions Detected
+             {t.patternAlertSub}
           </p>
         </div>
 
         <div className="p-8 space-y-6">
           <div className="space-y-2">
-            <span className="text-[9px] font-black text-beigegray uppercase tracking-widest">{lang === 'zh' ? '观察到的模式' : 'Observed Pattern'}</span>
+            <span className="text-[9px] font-black text-beigegray uppercase tracking-widest">{t.observedPattern}</span>
             <p className="text-sm font-bold text-darkblue dark:text-cream leading-relaxed">
               {analysis.patternSummary}
             </p>
@@ -55,7 +55,7 @@ export const PatternAlert: React.FC<PatternAlertProps> = ({ analysis, onClose, l
             onClick={onClose}
             className="w-full py-4 bg-darkblue text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all"
           >
-            {lang === 'zh' ? '明白了，我会注意' : 'Got it, I’ll be mindful'}
+            {t.gotIt}
           </button>
         </div>
       </div>

@@ -3,10 +3,8 @@ export type CuisineType = 'Chinese' | 'Japanese' | 'Italian' | 'French' | 'Weste
 export type CraveType = 'comfort' | 'healthy' | 'spicy' | 'sweet' | 'social' | 'surprise';
 
 export type PetType = 'dog' | 'cat' | 'mouse' | 'kangaroo' | 'koala' | 'custom';
-export type PetAccessory = 'none' | 'hat' | 'scarf' | 'bowtie';
 export type Language = 'zh' | 'en';
 export type Theme = 'light' | 'dark';
-
 export type MoodType = 'happy' | 'energetic' | 'calm' | 'neutral' | 'anxious' | 'sad';
 
 export interface PetState {
@@ -15,9 +13,7 @@ export interface PetState {
   hp: number;
   level: number;
   name: string;
-  accessory?: PetAccessory;
   imageUrl?: string;
-  isSleeping?: boolean;
 }
 
 export interface RestaurantReview {
@@ -27,7 +23,29 @@ export interface RestaurantReview {
   avoidDishes: string[];
   userReview: string;
   wishlistDishes: string[];
-  foodPhoto?: string; // Base64
+  foodPhoto?: string;
+}
+
+export interface UnifiedInsight {
+  type: 'daily' | 'food';
+  title?: string;
+  analysis: string; 
+  keywords: string[];
+  affirmation?: string; 
+  news?: string; 
+  tip?: string; 
+  music?: {
+    title: string;
+    artist: string;
+  };
+  recipe?: {
+    title: string;
+    difficulty: string;
+    keyIngredients: string[];
+  };
+  places?: GroundingPlace[];
+  refinedEmotion?: string; 
+  petComment: string; 
 }
 
 export interface FoodEntry {
@@ -35,38 +53,15 @@ export interface FoodEntry {
   date: string;
   cuisine: CuisineType;
   crave: CraveType;
+  mood?: MoodType;
   note?: string; 
   review?: RestaurantReview;
-  insight?: FoodInsight;
+  insight?: UnifiedInsight;
   keywords?: string[];
 }
 
-export interface FoodInsight {
-  chefAnalysis: string; 
-  cookingTip: string; 
-  petComment: string; 
-  moodDetection?: string; 
-  placesNearby?: GroundingPlace[];
-  analysis?: string;
-  keywords: string[];
-  recipeIdea?: {
-    title: string;
-    difficulty: string;
-    keyIngredients: string[];
-  };
-}
-
-export interface DailyInsight {
-  refinedEmotion: string;
-  keywords: string[];
-  implicitAnalysis: string;
-  affirmation: string;
-  news: string;
-  musicSuggestion?: {
-    title: string;
-    artist: string;
-  };
-  placesNearby?: GroundingPlace[];
+export interface DailyInsight extends UnifiedInsight {
+  type: 'daily';
 }
 
 export interface PatternAnalysis {
@@ -78,12 +73,13 @@ export interface PatternAnalysis {
 export interface GroundingPlace {
   title: string;
   uri: string;
+  distance?: string;
   googleRating?: number;
-  personalRating?: number;
-  isVisited?: boolean;
-  personalKeywords?: string[];
-  googleKeywords?: string[];
-  reviewId?: string;
+  address?: string;
+  photoUrl?: string;
+  keywords?: string[];
+  matchReason?: string;
+  vibeScore?: number;
 }
 
 export interface ReportData {
@@ -92,4 +88,6 @@ export interface ReportData {
   cuisineDistribution: Record<string, number>;
   chefAdvice: string;
   dominantCuisine: CuisineType;
+  emotionalInsight?: string;
+  moodTrend: { date: string, value: number, mood: MoodType }[];
 }

@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { FoodInsight, Language } from '../types';
+import { UnifiedInsight, Language } from '../types';
 import { translations } from '../translations';
 
 interface FoodInsightCardProps {
-  insight: FoodInsight;
+  insight: UnifiedInsight;
   isLoading: boolean;
   lang: Language;
 }
@@ -36,21 +36,21 @@ export const FoodInsightCard: React.FC<FoodInsightCardProps> = ({ insight, isLoa
         </div>
         <p className="text-[14px] font-bold leading-relaxed mb-4">“{insight.analysis}”</p>
         <div className="flex flex-wrap gap-2">
-           {insight.keywords.map((k, i) => (
+           {insight.keywords?.map((k, i) => (
              <span key={i} className="px-3 py-1 bg-white/10 text-[9px] font-black rounded-full uppercase">#{k}</span>
            ))}
         </div>
       </div>
 
       {/* 地图引导卡片 */}
-      {insight.placesNearby && insight.placesNearby.length > 0 && (
+      {insight.places && insight.places.length > 0 && (
         <div className="bg-white dark:bg-gray-900/50 p-8 rounded-[3rem] border border-beigegray/50 shadow-sm">
           <div className="flex items-center justify-between mb-6">
              <span className="text-[10px] font-black text-darkblue dark:text-cream uppercase tracking-[0.4em]">{t.seePlaces}</span>
              <span className="text-xs">📍</span>
           </div>
           <div className="flex flex-col gap-3">
-            {insight.placesNearby.map((place, i) => (
+            {insight.places?.map((place, i) => (
               <a 
                 key={i} 
                 href={place.uri} 
@@ -70,25 +70,24 @@ export const FoodInsightCard: React.FC<FoodInsightCardProps> = ({ insight, isLoa
       )}
 
       {/* 烹饪小贴士 */}
-      {insight.recipeIdea && (
+      {insight.recipe && (
         <div className="bg-orange-50 dark:bg-orange-950/20 p-8 rounded-[3rem] border border-orange-100 dark:border-orange-900/30">
           <div className="flex items-center gap-2 mb-4">
              <span className="text-lg">👩‍🍳</span>
              <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest">在家试试</span>
           </div>
-          <h4 className="text-base font-bold text-darkblue dark:text-cream mb-2">{insight.recipeIdea.title}</h4>
+          <h4 className="text-base font-bold text-darkblue dark:text-cream mb-2">{insight.recipe.title}</h4>
           <div className="flex gap-2 mb-4">
             <span className="px-2 py-0.5 bg-orange-200 dark:bg-orange-900 text-[8px] font-black rounded uppercase text-orange-700 dark:text-orange-200">
-               {insight.recipeIdea.difficulty}
+               {insight.recipe.difficulty}
             </span>
           </div>
           <p className="text-[11px] text-orange-800/70 dark:text-orange-200/60 leading-relaxed font-medium">
-            关键食材: {insight.recipeIdea.keyIngredients.join(', ')}
+            关键食材: {insight.recipe.keyIngredients?.join(', ')}
           </p>
         </div>
       )}
 
-      {/* 品味寄语 */}
       <div className="text-center py-4">
         <p className="text-sm font-medium text-beigegray italic">“{insight.petComment}”</p>
       </div>

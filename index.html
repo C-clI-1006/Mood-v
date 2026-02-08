@@ -1,15 +1,15 @@
 
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>MoodFlow</title>
+    <title>G'dayMood</title>
     
     <!-- PWA Meta Tags for iOS -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="MoodFlow">
+    <meta name="apple-mobile-web-app-title" content="G'dayMood">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/599/599502.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -23,6 +23,17 @@
               beigegray: '#EAE7DC',
               deepblue: '#1B263B',
               darkblue: '#0D1B2A',
+              accent: '#6366F1',
+              midnight: {
+                bg: '#05070A',
+                card: '#0E121A',
+                border: 'rgba(255, 255, 255, 0.05)',
+                accent: '#818CF8'
+              }
+            },
+            padding: {
+              'safe': 'env(safe-area-inset-top)',
+              'safe-bottom': 'env(safe-area-inset-bottom)'
             }
           }
         }
@@ -30,7 +41,7 @@
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;400;600;800;900&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -42,89 +53,53 @@
             overflow: hidden;
             background-color: #FAF9F6;
         }
+        body::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            opacity: 0.03;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            z-index: 50;
+        }
+        body.dark { background-color: #05070A; }
+        body.dark::before { opacity: 0.05; }
+
         #root {
             height: 100%;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-        }
-        .safe-area-bottom {
-            padding-bottom: env(safe-area-inset-bottom);
+            padding-top: env(safe-area-inset-top);
         }
         .glass {
-            background: rgba(250, 249, 246, 0.85);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
+            background: rgba(250, 249, 246, 0.7);
+            backdrop-filter: blur(30px) saturate(180%);
+            -webkit-backdrop-filter: blur(30px) saturate(180%);
+        }
+        .dark .glass {
+            background: rgba(14, 18, 26, 0.7);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
         }
         
-        @keyframes bubble-pop {
-            0% { transform: scale(0.8) translateY(10px); opacity: 0; }
-            70% { transform: scale(1.05) translateY(-2px); opacity: 1; }
-            100% { transform: scale(1) translateY(0); opacity: 1; }
+        @keyframes push-slide {
+            0% { transform: translateY(-100%); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
         }
-        @keyframes pixar-breath {
-            0%, 100% { transform: translateY(0) scale(1, 1); }
-            50% { transform: translateY(-8px) scale(1.01, 0.99); }
-        }
-        @keyframes heart-float {
-            0% { transform: translateY(0) scale(0); opacity: 0; }
-            20% { opacity: 0.8; transform: translateY(-20px) scale(1.2); }
-            100% { transform: translateY(-120px) scale(0.5); opacity: 0; }
-        }
-        @keyframes bubble-rise {
-            0% { transform: translateY(0) scale(0); opacity: 0; }
-            30% { opacity: 0.6; transform: translateY(-30px) scale(1); }
-            100% { transform: translateY(-150px) scale(1.5); opacity: 0; }
-        }
-        @keyframes ambient-glow {
-            0%, 100% { opacity: 0.15; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(1.1); }
-        }
-        @keyframes slow-breath {
-            0%, 100% { transform: scale(1); opacity: 0.03; }
-            50% { transform: scale(1.05); opacity: 0.08; }
-        }
-        @keyframes bg-pulse-glow {
-            0%, 100% { opacity: 0.04; transform: scale(1); }
-            50% { opacity: 0.12; transform: scale(1.15); }
-        }
-        /* 新增：睡眠 Zzz 动画 */
-        @keyframes zzz-float {
-            0% { transform: translate(0, 0) scale(0.5) rotate(0deg); opacity: 0; }
-            50% { opacity: 0.8; }
-            100% { transform: translate(40px, -80px) scale(1.5) rotate(20deg); opacity: 0; }
-        }
+        .animate-push { animation: push-slide 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
 
-        .animate-bubble-pop { animation: bubble-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        .animate-breath { animation: pixar-breath 4s ease-in-out infinite; }
-        .animate-heart { animation: heart-float 3s ease-out infinite; }
-        .animate-bubble-rise { animation: bubble-rise 4s ease-out infinite; }
-        .animate-glow { animation: ambient-glow 3s ease-in-out infinite; }
-        .animate-slow-breath { animation: slow-breath 10s ease-in-out infinite; }
-        .animate-bg-pulse { animation: bg-pulse-glow 6s ease-in-out infinite; }
-        .animate-zzz { animation: zzz-float 4s ease-in-out infinite; }
-
-        .loading-screen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            color: #1B263B;
-            background: #FAF9F6;
-        }
         .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #EAE7DC;
-            border-top: 4px solid #1B263B;
+            width: 32px;
+            height: 32px;
+            border: 2px solid rgba(13, 27, 42, 0.1);
+            border-top-color: #0D1B2A;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 16px;
+            animation: spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .dark .spinner {
+            border-color: rgba(255, 255, 255, 0.1);
+            border-top-color: #818CF8;
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 <script type="importmap">
 {
@@ -139,11 +114,11 @@
 }
 </script>
 </head>
-<body class="bg-cream text-deepblue dark:bg-darkblue dark:text-cream">
+<body class="bg-cream text-deepblue dark:bg-midnight-bg dark:text-cream">
     <div id="root">
-        <div class="loading-screen">
+        <div class="flex flex-col items-center justify-center h-screen space-y-4">
             <div class="spinner"></div>
-            <p style="font-weight: 600; font-size: 14px; opacity: 0.6;">正在启动 MoodFlow...</p>
+            <p class="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">G'dayMood Terminal</p>
         </div>
     </div>
     <script type="module" src="./index.tsx"></script>

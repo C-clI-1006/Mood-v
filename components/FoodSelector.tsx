@@ -22,19 +22,19 @@ export const FoodSelector: React.FC<FoodSelectorProps> = ({ onSelect, selectedCr
   const t = translations[lang];
 
   return (
-    <div className="grid grid-cols-3 gap-4 p-4">
+    <div className="grid grid-cols-3 gap-3 p-1">
       {craves.map((c) => (
         <button
           key={c.type}
           onClick={() => onSelect(c.type)}
-          className={`flex flex-col items-center justify-center p-5 rounded-[2.5rem] transition-all duration-300 ${
+          className={`flex items-center gap-2 px-3 py-3 rounded-[1.2rem] transition-all duration-300 border ${
             selectedCrave === c.type 
-              ? `bg-darkblue scale-105 shadow-2xl text-cream ring-4 ring-white dark:ring-gray-800` 
-              : 'bg-white dark:bg-gray-800 shadow-sm text-deepblue/60 dark:text-gray-400 hover:shadow-md'
+              ? `bg-darkblue border-darkblue scale-[1.02] shadow-xl text-white` 
+              : 'bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 text-slate-500 dark:text-slate-500 hover:bg-slate-50 active:scale-95'
           }`}
         >
-          <span className="text-3xl mb-2">{c.icon}</span>
-          <span className="text-[10px] font-black uppercase tracking-widest">{t[c.type]}</span>
+          <span className="text-lg leading-none">{c.icon}</span>
+          <span className="text-[8px] font-black uppercase tracking-wider truncate">{t[c.type]}</span>
         </button>
       ))}
     </div>

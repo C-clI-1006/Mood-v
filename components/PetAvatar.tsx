@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { PetType, MoodType } from '../types';
 
 interface PetAvatarProps {
@@ -8,110 +8,110 @@ interface PetAvatarProps {
   imageUrl?: string;
   isUpdating?: boolean;
   currentMood?: MoodType | null;
-  isSleeping?: boolean; // 新增
 }
 
-export const PetAvatar: React.FC<PetAvatarProps> = ({ type, level, imageUrl, isUpdating, currentMood, isSleeping }) => {
+export const PetAvatar: React.FC<PetAvatarProps> = ({ type, level, imageUrl, isUpdating, currentMood }) => {
   const scale = Math.min(1 + (level - 1) * 0.1, 1.4);
   const isPositive = currentMood === 'happy' || currentMood === 'energetic';
   const isNegative = currentMood === 'sad' || currentMood === 'anxious';
   
-  // 动态调整呼吸频率：睡眠最慢，焦虑最快
-  const breathDuration = isSleeping ? '8s' : currentMood === 'anxious' ? '1.5s' : currentMood === 'energetic' ? '2.5s' : '4s';
+  const breathDuration = currentMood === 'anxious' ? '1.5s' : currentMood === 'energetic' ? '2.5s' : '5s';
+
+  const [mouseOffset, setMouseOffset] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      // 稍微削弱位移，增加“沉重”的质感
+      const x = (e.clientX / window.innerWidth - 0.5) * 80;
+      const y = (e.clientY / window.innerHeight - 0.5) * 80;
+      setMouseOffset({ x, y });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
 
   return (
     <div 
-      className={`relative flex items-center justify-center transition-all duration-1000 ease-out ${isSleeping ? 'grayscale-[0.4] brightness-90' : ''}`}
+      className="relative flex items-center justify-center transition-transform duration-1000 ease-out"
       style={{ transform: `scale(${scale})` }}
     >
-      {/* 背景发光 Aura */}
-      <div className={`absolute w-64 h-64 rounded-full blur-3xl animate-glow transition-colors duration-1000 ${isSleeping ? 'bg-indigo-900/10' : isNegative ? 'bg-rose-400/20' : isPositive ? 'bg-yellow-400/20' : 'bg-indigo-300/15'}`} />
-      
-      {/* 睡眠特效：Zzz */}
-      {isSleeping && !isUpdating && (
-        <div className="absolute inset-0 pointer-events-none overflow-visible">
-          {[...Array(3)].map((_, i) => (
-            <div 
-              key={i}
-              className="absolute text-deepblue dark:text-cream font-black text-2xl animate-zzz"
-              style={{ 
-                left: '60%', 
-                top: '20%',
-                animationDelay: `${i * 1.5}s`,
-              }}
-            >
-              Z
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 负面情绪：爱心汇聚 */}
-      {isNegative && !isUpdating && !isSleeping && (
-        <div className="absolute inset-0 pointer-events-none overflow-visible">
-          {[...Array(12)].map((_, i) => (
-            <div 
-              key={i}
-              className="absolute text-rose-400 text-xl animate-heart"
-              style={{ 
-                left: `${15 + Math.random() * 70}%`, 
-                top: '60%',
-                animationDelay: `${i * 0.3}s`,
-                fontSize: `${14 + Math.random() * 10}px`
-              }}
-            >
-              ❤️
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 正面情绪：能量冒泡 */}
-      {isPositive && !isUpdating && !isSleeping && (
-        <div className="absolute inset-0 pointer-events-none overflow-visible">
-          {[...Array(10)].map((_, i) => (
-            <div 
-              key={i}
-              className="absolute text-blue-300 dark:text-blue-100 opacity-60 animate-bubble-rise"
-              style={{ 
-                left: `${10 + Math.random() * 80}%`, 
-                top: '70%',
-                animationDelay: `${i * 0.4}s`,
-                fontSize: `${12 + Math.random() * 16}px`
-              }}
-            >
-              🫧
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 进化/更新加载圈 */}
-      {isUpdating && (
-        <div className="absolute inset-0 z-20 flex items-center justify-center">
-          <div className="w-52 h-52 border-[6px] border-deepblue/10 border-t-darkblue rounded-full animate-spin" />
-        </div>
-      )}
-
-      {/* 守护者主体 */}
+      {/* 极简高级光晕 (Advanced Aura) */}
       <div 
-        className={`relative transition-all duration-700 ${isUpdating ? 'opacity-40 blur-sm scale-95' : 'opacity-100'} animate-breath`}
-        style={{ animationDuration: breathDuration }}
+        className="absolute w-80 h-80 rounded-full blur-[100px] transition-all duration-1000 ease-out animate-aura-rotate"
+        style={{ 
+          background: isNegative 
+            ? 'conic-gradient(from 0deg, #f43f5e, #fb7185, #f43f5e)' 
+            : isPositive 
+            ? 'conic-gradient(from 0deg, #f59e0b, #fbbf24, #f59e0b)'
+            : 'conic-gradient(from 0deg, #6366f1, #818cf8, #6366f1)',
+          opacity: 0.15,
+          transform: `translate3d(${mouseOffset.x * 0.4}px, ${mouseOffset.y * 0.4}px, 0)`
+        }}
+      />
+      
+      {/* 极简能量场 */}
+      <div 
+        className={`absolute w-64 h-64 border border-white/5 rounded-full animate-glow transition-all duration-1000 ${isPositive ? 'scale-110' : 'scale-100'}`}
+        style={{ transform: `translate3d(${mouseOffset.x * 0.2}px, ${mouseOffset.y * 0.2}px, 0)` }}
+      />
+
+      {/* 负面情绪：细小晶体汇聚 (替代爱心) */}
+      {isNegative && !isUpdating && (
+        <div className="absolute inset-0 pointer-events-none overflow-visible">
+          {[...Array(8)].map((_, i) => (
+            <div 
+              key={i}
+              className="absolute w-1 h-1 bg-rose-400 rounded-sm animate-bubble-rise"
+              style={{ 
+                left: `${30 + Math.random() * 40}%`, 
+                top: '50%',
+                animationDelay: `${i * 0.6}s`,
+                opacity: 0.3
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* 正面情绪：上升线条 (替代气泡) */}
+      {isPositive && !isUpdating && (
+        <div className="absolute inset-0 pointer-events-none overflow-visible">
+          {[...Array(6)].map((_, i) => (
+            <div 
+              key={i}
+              className="absolute w-[1px] h-8 bg-amber-400/40 animate-bubble-rise"
+              style={{ 
+                left: `${20 + Math.random() * 60}%`, 
+                top: '60%',
+                animationDelay: `${i * 0.8}s`,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      <div 
+        className={`relative transition-transform duration-300 ease-out ${isUpdating ? 'opacity-20 blur-md scale-90' : 'opacity-100'}`}
+        style={{ transform: `translate3d(${mouseOffset.x}px, ${mouseOffset.y}px, 0)` }}
       >
-        {imageUrl ? (
-          <img 
-            src={imageUrl} 
-            alt={type} 
-            className={`w-56 h-56 rounded-[3.5rem] object-cover ring-8 ring-white dark:ring-gray-800 shadow-2xl transition-all duration-1000 ${isSleeping ? 'opacity-80 scale-95' : 'opacity-100'}`}
-          />
-        ) : (
-          <div className="w-56 h-56 bg-beigegray/20 dark:bg-gray-800 rounded-[3.5rem] flex items-center justify-center border-4 border-dashed border-beigegray">
-             <div className="flex flex-col items-center opacity-30">
-                <div className="w-6 h-6 border-2 border-darkblue border-t-transparent rounded-full animate-spin mb-3" />
-                <span className="text-[10px] font-black tracking-widest uppercase text-darkblue">Awakening...</span>
-             </div>
-          </div>
-        )}
+        <div className="animate-breath" style={{ animationDuration: breathDuration }}>
+          {imageUrl ? (
+            <div className="relative p-2 bg-white/5 dark:bg-white/5 rounded-[4rem] backdrop-blur-3xl shadow-2xl border border-white/10">
+              <img 
+                src={imageUrl} 
+                alt={type} 
+                className="w-52 h-52 rounded-[3.5rem] object-cover ring-1 ring-white/10 transition-all duration-1000"
+              />
+            </div>
+          ) : (
+            <div className="w-52 h-52 bg-slate-900/5 dark:bg-white/5 rounded-[3.5rem] flex items-center justify-center border border-white/5">
+               <div className="flex flex-col items-center gap-3">
+                  <div className="w-5 h-5 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+                  <span className="text-[8px] font-black tracking-[0.4em] uppercase text-indigo-500/40">Syncing</span>
+               </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 {
-  "name": "MoodFlow - AI Soul Guardian",
+  "name": "G'dayMood - AI Soul Guardian",
   "description": "An iPhone PWA that provides emotional support with Live Voice, Veo animations, and Maps grounding.",
   "requestFramePermissions": [
     "camera",

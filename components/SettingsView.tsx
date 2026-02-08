@@ -155,7 +155,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         {/* Footnote */}
         <footer className="text-center pt-8 pb-12 opacity-30">
            <p className="text-[8px] font-black uppercase tracking-[0.5em] text-beigegray">
-             MoodFlow v4.3.0 • AI Soul System
+             G'dayMood v4.3.0 • AI Soul System
            </p>
         </footer>
       </div>
